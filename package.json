@@ -7,11 +7,16 @@
   "bin": {
     "chatwoot-mcp-server": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build",
     "generate-types": "openapi-typescript swagger.json -o src/chatwoot-types.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -22,12 +27,24 @@
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "chatwoot",
     "customer-support",
-    "helpdesk"
+    "helpdesk",
+    "claude",
+    "ai",
+    "chatbot"
   ],
-  "author": "",
+  "author": "Hugo Blanc",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hugoblanc/chatwoot-mcp.git"
+  },
+  "homepage": "https://github.com/hugoblanc/chatwoot-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/hugoblanc/chatwoot-mcp/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
     "dotenv": "^17.2.3",
