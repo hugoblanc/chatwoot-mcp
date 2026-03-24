@@ -23,7 +23,24 @@ Model Context Protocol (MCP) server for Chatwoot API integration. Enables AI ass
 
 ## Installation
 
+### Via npm (recommended)
+
 ```bash
+npx chatwoot-mcp-server
+```
+
+Or install globally:
+
+```bash
+npm install -g chatwoot-mcp-server
+chatwoot-mcp-server
+```
+
+### From source
+
+```bash
+git clone https://github.com/hugoblanc/chatwoot-mcp.git
+cd chatwoot-mcp
 npm install
 npm run build
 ```
@@ -71,25 +88,13 @@ server {
 
 ## Usage
 
-### Running the Server
-
-```bash
-npm start
-```
-
-### Development Mode (with auto-reload)
-
-```bash
-npm run dev
-```
-
 ### Using with Claude Code
 
 ```bash
 claude mcp add chatwoot \
   -e CHATWOOT_BASE_URL="https://your-instance.com" \
   -e CHATWOOT_API_TOKEN="your_token" \
-  -- node /path/to/chatwoot-mcp-server/dist/index.js
+  -- npx chatwoot-mcp-server
 ```
 
 ### Using with Claude Desktop
@@ -100,8 +105,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "chatwoot": {
-      "command": "node",
-      "args": ["/path/to/chatwoot-mcp-server/dist/index.js"],
+      "command": "npx",
+      "args": ["chatwoot-mcp-server"],
       "env": {
         "CHATWOOT_BASE_URL": "https://your-chatwoot-instance.com",
         "CHATWOOT_API_TOKEN": "your_api_token"
@@ -109,6 +114,12 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
     }
   }
 }
+```
+
+### Development Mode (from source)
+
+```bash
+npm run dev
 ```
 
 ## Example Queries
