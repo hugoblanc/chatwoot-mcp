@@ -47,6 +47,17 @@ npm run build
 
 ## Configuration
 
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `CHATWOOT_BASE_URL` | Yes | — | Your Chatwoot instance URL, e.g. `https://app.chatwoot.com` |
+| `CHATWOOT_API_KEY` | For OAuth | — | Single-tenant Chatwoot API key. Required to enable the OAuth path (see below). |
+| `MCP_OAUTH_SIGNING_SECRET` | For OAuth | — | Base64 or hex string, min 32 bytes. Enables the OAuth 2.0 + PKCE endpoints. Generate with `openssl rand -base64 48`. |
+| `MCP_OAUTH_ISSUER` | For OAuth | — | Public base URL of this server, e.g. `https://your-chatwoot.example.com`. Used as `iss` in issued JWTs and in discovery documents. |
+| `MCP_PORT` | No | `3198` | Port the HTTP server listens on. |
+| `MCP_HOST` | No | `127.0.0.1` | Bind address. Use `0.0.0.0` only if you are not behind a reverse proxy. |
+
 ### Recommended: API Access Token
 
 The simplest method using your Chatwoot API token (no expiration).
@@ -59,8 +70,39 @@ The simplest method using your Chatwoot API token (no expiration).
 **Configure `.env`:**
 ```bash
 CHATWOOT_BASE_URL="https://your-chatwoot-instance.com"
-CHATWOOT_API_TOKEN="your_api_token_here"
+CHATWOOT_API_KEY="your_api_token_here"
 ```
+
+### OAuth 2.0 + PKCE (for MCP clients that require OAuth)
+
+The HTTP server ships a built-in single-tenant OAuth 2.0 authorization server so it can be used by MCP clients that require OAuth and cannot send a static Bearer token directly (e.g. hosted clients that implement the MCP authorization spec).
+
+**How it works (single-tenant design):**
+
+- The `/oauth/authorize` endpoint auto-approves immediately — no login page, no consent screen.
+- The OAuth flow issues a short-lived HS256 JWT that proves "the caller completed PKCE on our server".
+- On every `/mcp` request, the server verifies the JWT locally and maps it to the env-baked `CHATWOOT_API_KEY`. The JWT itself carries no Chatwoot credential.
+- The existing static Bearer / `api-access-token` path continues to work unchanged.
+
+**Security note:** Anyone who knows `MCP_OAUTH_SIGNING_SECRET` can mint valid access tokens that will be mapped to your `CHATWOOT_API_KEY`. Keep the secret private. Do not expose the OAuth endpoints on a multi-user or public deployment without adding additional access controls.
+
+**Enable OAuth — add to `.env`:**
+```bash
+CHATWOOT_BASE_URL="https://your-chatwoot-instance.com"
+CHATWOOT_API_KEY="your_chatwoot_api_token"
+MCP_OAUTH_SIGNING_SECRET="$(openssl rand -base64 48)"
+MCP_OAUTH_ISSUER="https://chat.your-domain.com"
+```
+
+**OAuth endpoints exposed when enabled:**
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/.well-known/oauth-authorization-server` | GET | RFC 8414 discovery document |
+| `/.well-known/oauth-protected-resource` | GET | RFC 9728 resource metadata (also matches `/mcp` suffix) |
+| `/oauth/register` | POST | RFC 7591 Dynamic Client Registration (stateless) |
+| `/oauth/authorize` | GET | Authorization endpoint — auto-approves, redirects with code |
+| `/oauth/token` | POST | Token endpoint — validates PKCE, issues HS256 JWT |
 
 ### Alternative: JWT Authentication
 
