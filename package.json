@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "chatwoot-mcp-server": "dist/index.js"
+    "chatwoot-mcp-server": "dist/index.js",
+    "chatwoot-mcp-http": "dist/http.js"
   },
   "files": [
     "dist",

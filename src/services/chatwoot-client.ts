@@ -14,6 +14,7 @@ import {
   type ChatwootLoginCredentials,
 } from "./chatwoot-auth.js";
 import { loadTokens, saveTokens } from "./token-cache.js";
+import { clientStore } from "./client-context.js";
 
 export interface ChatwootClientConfig {
   /** Base URL of your Chatwoot instance */
@@ -42,7 +43,15 @@ export async function createChatwootClient(config: ChatwootClientConfig) {
 
     const authMiddleware: Middleware = {
       async onRequest({ request }) {
-        request.headers.set("api_access_token", config.apiAccessToken!);
+        // Use the hyphenated form so the header survives reverse-proxies and
+        // CDNs (notably Cloudflare) that strip headers with underscores per
+        // RFC 7230 normalization. Rails / Rack normalizes both
+        // `api-access-token` and `api_access_token` to the same env variable
+        // (`HTTP_API_ACCESS_TOKEN`), so Chatwoot accepts either form — but
+        // only the hyphenated form makes it past intermediaries that do not
+        // have `underscores_in_headers on` configured (Cloudflare proxy,
+        // CapRover's default nginx, AWS ALB, etc.).
+        request.headers.set("api-access-token", config.apiAccessToken!);
         request.headers.set("Content-Type", "application/json");
         return request;
       },
@@ -124,7 +133,9 @@ export async function createChatwootClient(config: ChatwootClientConfig) {
 }
 
 /**
- * Global client instance
+ * Process-wide singleton, used by the stdio entry point (a single Chatwoot
+ * account per process). The HTTP entry point overrides this on a
+ * per-request basis via the AsyncLocalStorage in client-context.ts.
  */
 let clientInstance: ReturnType<typeof createClient<paths>> | null = null;
 
@@ -133,9 +144,17 @@ export async function initializeClient(config: ChatwootClientConfig) {
 }
 
 export function getClient(): ReturnType<typeof createClient<paths>> {
+  // Request-scoped client takes precedence over the process-wide singleton —
+  // this is how the HTTP transport threads the caller's own Chatwoot API
+  // token into the tool handlers without globally mutating state.
+  const scoped = clientStore.getStore();
+  if (scoped) return scoped;
+
   if (!clientInstance) {
     throw new Error(
-      "Chatwoot client not initialized. Call initializeClient() first."
+      "Chatwoot client not initialized. Call initializeClient() first " +
+      "(stdio mode) or send Authorization: Bearer <chatwoot-token> on the " +
+      "incoming HTTP request (HTTP mode)."
     );
   }
   return clientInstance;
