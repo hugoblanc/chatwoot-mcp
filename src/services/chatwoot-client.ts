@@ -42,7 +42,15 @@ export async function createChatwootClient(config: ChatwootClientConfig) {
 
     const authMiddleware: Middleware = {
       async onRequest({ request }) {
-        request.headers.set("api_access_token", config.apiAccessToken!);
+        // Use the hyphenated form so the header survives reverse-proxies and
+        // CDNs (notably Cloudflare) that strip headers with underscores per
+        // RFC 7230 normalization. Rails / Rack normalizes both
+        // `api-access-token` and `api_access_token` to the same env variable
+        // (`HTTP_API_ACCESS_TOKEN`), so Chatwoot accepts either form — but
+        // only the hyphenated form makes it past intermediaries that do not
+        // have `underscores_in_headers on` configured (Cloudflare proxy,
+        // CapRover's default nginx, AWS ALB, etc.).
+        request.headers.set("api-access-token", config.apiAccessToken!);
         request.headers.set("Content-Type", "application/json");
         return request;
       },
